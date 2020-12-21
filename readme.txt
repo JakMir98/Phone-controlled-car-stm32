@@ -1,4 +1,4 @@
-Project for TMP2 2020
+Projekt na Technike mikroprocesorową 2 
 
 Założenia projektowe:
 - Sercem układu jest płytka Nucleo F103RB z procesorem ARM Cortex M3, 72 MHz, 128 kB Flash, 20 kB SRAM
