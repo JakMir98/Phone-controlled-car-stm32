@@ -27,28 +27,44 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef enum
+{
+	GO_FORWARD,
+	GO_BACKWARD,
+	TURN_RIGHT,
+	TURN_LEFT,
+	HORN,
+	FRONT_LIGHTS_BRIGHTNESS_CHANGE,
+	LIGHTS_ON,
+	LIGHTS_OFF,
+	RESETTING,
+	RESTING
+} State;
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define GO_FORWARD_CHAR 'u'
-#define GO_BACKWARD_CHAR 'd'
-#define TURN_RIGHT_CHAR 'r'
-#define TURN_LEFT_CHAR 'l'
-#define HORN_CHAR 'h'
-#define ADJUST_BRIGHTNESS_CHAR 'a'
-#define LIGHTS_ON_CHAR 'o'
-#define LIGHTS_OFF_CHAR 'f'
-#define DO_NOTHING_CHAR 'n'
+#define GO_FORWARD_CHAR 		'u'
+#define GO_BACKWARD_CHAR 		'd'
+#define TURN_RIGHT_CHAR 		'r'
+#define TURN_LEFT_CHAR 			'l'
+#define HORN_CHAR 				'h'
+#define ADJUST_BRIGHTNESS_CHAR 	'a'
+#define LIGHTS_ON_CHAR 			'o'
+#define LIGHTS_OFF_CHAR 		'f'
+#define DO_NOTHING_CHAR 		'n'
+#define RESET_CHAR 				'x'
+#define RIGHT_LIGHT_CHAR 		'b'
+#define LEFT_LIGHT_CHAR 		'v'
 
-#define SPEED_MAX_LEVEL 3
-#define TURNING_MAX_LEVEL 1
+#define SPEED_MAX_LEVEL 		3
+#define TURNING_MAX_LEVEL 		1
 
-#define MOTOR_SPEED_MIN 25
-#define MOTOR_SPEED_MEDIUM 50
+#define MOTOR_SPEED_MIN 		25
+#define MOTOR_SPEED_MEDIUM 		50
 #define MOTOR_SPEED_MORE_MEDIUM 75
-#define MOTOR_SPEED_MAX 100
+#define MOTOR_SPEED_MAX 		100
 
 /* USER CODE END PD */
 
@@ -65,17 +81,27 @@ TIM_HandleTypeDef htim10;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-int counter = 1;
+// FSM
+State state = RESTING;
+int counter = 1; // testing only
+// hcsr04
 uint32_t local_time, sensor_time;
 uint32_t distance;
+//uart handling
 char received;
 
+// speed counters
 uint8_t forwardCounter = 0;
 uint8_t backwardCounter = 0;
 uint8_t rightTurningCounter = 0;
 uint8_t leftTurningCounter = 0;
 uint8_t lightsBrightness = 0;
 
+// light ticks handle
+uint8_t isRightLightActive=0;
+uint8_t isLeftLightActive=0;
+//timer counter
+uint_fast64_t timerCounter = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -105,25 +131,15 @@ void MotorsForward(uint8_t pwm_value1);
 void MotorsTurningRight(uint8_t pwm_value1);
 void MotorsTurningLeft(uint8_t pwm_value1);
 void Reset(void);
+void RightLightTickHandle(void);
+void LeftLightTickHandle(void);
+void WaitForAction(void);
+void MotorsReset(uint32_t);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-typedef enum
-{
-	GO_FORWARD,
-	GO_BACKWARD,
-	TURN_RIGHT,
-	TURN_LEFT,
-	HORN,
-	FRONT_LIGHTS_BRIGHTNESS_CHANGE,
-	LIGHTS_ON,
-	LIGHTS_OFF,
-	RESTING
-} State;
-
-State state = RESTING;
-
+// hcsr04
 void delay_us (uint16_t us)
 {
 	__HAL_TIM_SET_COUNTER(&htim2,0);  // set the counter value a 0
@@ -144,6 +160,7 @@ uint32_t HCSR04_READ()
 	}
 	return local_time;
 }
+// gpio interrupt testing only
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	// testing only
@@ -177,11 +194,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 	counter++;
 }
+// timer interrupt testing only
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim->Instance == TIM10)
 	{
-		// Jeżeli przerwanie pochodzi od timera 10
 		static uint16_t cnt = 0; // Licznik wyslanych wiadomosci
 		 uint8_t data[50];// Tablica przechowujaca wysylana wiadomosc.
 		 uint16_t size = 0; // Rozmiar wysylanej wiadomosci ++cnt; // Zwiekszenie licznika wyslanych wiadomosci.
@@ -189,14 +206,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		 ++cnt; // Zwiekszenie licznika wyslanych wiadomosci.
 		 size = sprintf(data, "Odczyt: %d.\n\r", cnt); // Stworzenie wiadomosci do wyslania oraz przypisanie ilosci wysylanych znakow do zmiennej size.
 		 HAL_UART_Transmit_IT(&huart2, data, size); // Rozpoczecie nadawania danych z wykorzystaniem przerwan
-		 //HAL_GPIO_TogglePin(ON_BOARD_LED_GPIO_Port, ON_BOARD_LED_Pin);
 	}
 }
+// uart interrupt
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	uint8_t Data[50]; // Tablica przechowujaca wysylana wiadomosc.
-	uint16_t size = 0; // Rozmiar wysylanej wiadomosci
-
 	if(received == GO_FORWARD_CHAR)
 	{
 		state = GO_FORWARD;
@@ -235,17 +249,30 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		state = LIGHTS_OFF;
 	else if(received == DO_NOTHING_CHAR  )
 		state = RESTING;
-
-	HAL_UART_Transmit_IT(&huart2, Data, size); // Rozpoczecie nadawania danych z wykorzystaniem przerwan
+	else if(received == RESET_CHAR  )
+			state = RESETTING;
+	else if(received == LEFT_LIGHT_CHAR)
+	{
+		isRightLightActive = 0;
+		if (isLeftLightActive == 0) isLeftLightActive = 1;
+		else isLeftLightActive = 0;
+	}
+	else if(received == RIGHT_LIGHT_CHAR  )
+	{
+		isLeftLightActive = 0;
+		if (isRightLightActive == 0) isRightLightActive = 1;
+		else isRightLightActive = 0;
+	}
 	HAL_UART_Receive_IT(&huart2, &received, 1); // Ponowne włączenie nasłuchiwania
 }
+
+// Car action functions
 void GoForward()
 {
 	if (forwardCounter == 0) MotorsForward(MOTOR_SPEED_MIN);
 	else if (forwardCounter == 1) MotorsForward(MOTOR_SPEED_MEDIUM);
 	else if (forwardCounter == 2) MotorsForward(MOTOR_SPEED_MORE_MEDIUM);
 	else MotorsForward(MOTOR_SPEED_MAX);
-
 }
 void GoBackward()
 {
@@ -276,11 +303,25 @@ void LightsOn()
 {
 	HAL_GPIO_WritePin(LIGHTS_BACK_GPIO_Port, LIGHTS_BACK_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(LIGHTS_FRONT_GPIO_Port, LIGHTS_FRONT_Pin, GPIO_PIN_SET);
+	TIM1->CCR3 = 50;
 }
 void LightsOff()
 {
 	HAL_GPIO_WritePin(LIGHTS_BACK_GPIO_Port, LIGHTS_BACK_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(LIGHTS_FRONT_GPIO_Port, LIGHTS_FRONT_Pin, GPIO_PIN_RESET);
+	TIM1->CCR3 = 0;
+}
+void RightLightTickHandle(void)
+{
+	// todo spi1
+	HAL_GPIO_TogglePin(LIGHTS_FRONT_GPIO_Port, LIGHTS_FRONT_Pin);
+	HAL_Delay(500);
+}
+void LeftLightTickHandle(void)
+{
+	// todo spi2
+	HAL_GPIO_TogglePin(ON_BOARD_LED_GPIO_Port, ON_BOARD_LED_Pin);
+	HAL_Delay(500);
 }
 void AdjustBrightness()
 {
@@ -337,6 +378,30 @@ void Reset()
 	HAL_GPIO_WritePin(DC_IN3_GPIO_Port, DC_IN3_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(DC_IN4_GPIO_Port, DC_IN4_Pin, GPIO_PIN_RESET);
 
+	HAL_GPIO_WritePin(ON_BOARD_LED_GPIO_Port, ON_BOARD_LED_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LIGHTS_FRONT_GPIO_Port, LIGHTS_FRONT_Pin, GPIO_PIN_RESET);
+
+	forwardCounter = 0;
+	backwardCounter = 0;
+	rightTurningCounter = 0;
+	leftTurningCounter = 0;
+	isLeftLightActive = 0;
+	isRightLightActive = 0;
+}
+void MotorsReset(uint32_t delay)
+{
+	HAL_Delay(delay);
+	HAL_GPIO_WritePin(DC_IN1_GPIO_Port, DC_IN1_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(DC_IN2_GPIO_Port, DC_IN2_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(DC_IN3_GPIO_Port, DC_IN3_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(DC_IN4_GPIO_Port, DC_IN4_Pin, GPIO_PIN_RESET);
+	state = RESTING;
+}
+void WaitForAction()
+{
+	state = RESTING;
+	MotorsReset(0);
+	__WFI();
 }
 /* USER CODE END 0 */
 
@@ -375,11 +440,11 @@ int main(void)
   /* USER CODE BEGIN 2 */
   //HAL_InitTick(0);
   HAL_TIM_Base_Start_IT(&htim1);
-  HAL_TIM_Base_Start(&htim2);
-  HAL_TIM_Base_Start_IT(&htim10);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+  HAL_TIM_Base_Start(&htim2); // timer for us delay
+  HAL_TIM_Base_Start_IT(&htim10); //timer interrupt 600 ms
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1); // dc motor 1 pwm
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2); // dc motor 2 pwm
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3); // front light pwm
   TIM1->CCR3 = 0;
   HAL_UART_Receive_IT(&huart2, &received, 1);
   /* USER CODE END 2 */
@@ -391,19 +456,26 @@ int main(void)
 	  switch(state)
 	  {
 		  case RESTING:
+			  WaitForAction();
+			  break;
+		  case RESETTING:
 			  Reset();
 			  break;
 		  case GO_FORWARD:
 			  GoForward();
+			  //MotorsReset(0);
 			  break;
 		  case GO_BACKWARD:
 			  GoBackward();
+			  //MotorsReset(0);
 			  break;
 		  case TURN_RIGHT:
 			  TurnRight();
+			  //MotorsReset(0);
 			  break;
 		  case TURN_LEFT:
 			  TurnLeft();
+			  //MotorsReset(0);
 			  break;
 		  case HORN:
 			  Horn();
@@ -418,6 +490,21 @@ int main(void)
 			  LightsOff();
 			  break;
 	  }
+
+	  if(isRightLightActive == 1)
+	  {
+		  RightLightTickHandle();
+		  HAL_GPIO_WritePin(ON_BOARD_LED_GPIO_Port, ON_BOARD_LED_Pin, GPIO_PIN_RESET);
+	  }
+	  else if(isRightLightActive == 0) HAL_GPIO_WritePin(LIGHTS_FRONT_GPIO_Port, LIGHTS_FRONT_Pin, GPIO_PIN_RESET);
+
+	  if(isLeftLightActive == 1)
+	  {
+		  LeftLightTickHandle();
+		  HAL_GPIO_WritePin(LIGHTS_FRONT_GPIO_Port, LIGHTS_FRONT_Pin, GPIO_PIN_RESET);
+	  }
+	  else if(isLeftLightActive == 0) HAL_GPIO_WritePin(ON_BOARD_LED_GPIO_Port, ON_BOARD_LED_Pin, GPIO_PIN_RESET);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -626,9 +713,9 @@ static void MX_TIM10_Init(void)
 
   /* USER CODE END TIM10_Init 1 */
   htim10.Instance = TIM10;
-  htim10.Init.Prescaler = 9999;
+  htim10.Init.Prescaler = 8399;
   htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim10.Init.Period = 4999;
+  htim10.Init.Period = 9999;
   htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
@@ -691,7 +778,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, DC_IN3_Pin|DC_IN4_Pin|DC_IN1_Pin|DC_IN2_Pin
-                          |BUZZER_Pin, GPIO_PIN_RESET);
+                          |BUZZER_Pin|LEFT_LIGHT_Pin|RIGHT_LIGHT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, ON_BOARD_LED_Pin|LIGHTS_BACK_Pin, GPIO_PIN_RESET);
@@ -706,9 +793,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(USER_BUTTON_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : DC_IN3_Pin DC_IN4_Pin DC_IN1_Pin DC_IN2_Pin
-                           BUZZER_Pin */
+                           BUZZER_Pin LEFT_LIGHT_Pin RIGHT_LIGHT_Pin */
   GPIO_InitStruct.Pin = DC_IN3_Pin|DC_IN4_Pin|DC_IN1_Pin|DC_IN2_Pin
-                          |BUZZER_Pin;
+                          |BUZZER_Pin|LEFT_LIGHT_Pin|RIGHT_LIGHT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
