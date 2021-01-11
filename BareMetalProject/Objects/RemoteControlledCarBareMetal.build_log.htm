@@ -22,38 +22,13 @@ Dialog DLL:      TCM.DLL V1.46.0.0
  
 <h2>Project:</h2>
 I:\V_semestr\Mikroprocki\Projekt\BareMetalProject\RemoteControlledCarBareMetal.uvprojx
-Project File Date:  01/08/2021
+Project File Date:  01/11/2021
 
 <h2>Output:</h2>
 *** Using Compiler 'V6.14.1', folder: 'C:\Keil_v5\ARM\ARMCLANG\Bin'
 Rebuild target 'STM32F411RE'
-assembling startup_stm32f411xe.s...
-gpio.c(30): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
-        GPIOA->OTYPER &= ~((1<<ON_BOARD_LED_PIN) | (1<<LIGHTS_BACK_PIN)); // push pull
-                      ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-gpio.c(32): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
-        GPIOA->PUPDR &= ~((1<<(2*ON_BOARD_LED_PIN)) | (1<<(2*ON_BOARD_LED_PIN+1)) | (1<<(2*LIGHTS_BACK_PIN)) | (1<<(2*LIGHTS_BACK_PIN+1)));
-                     ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-gpio.c(34): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
-        GPIOB->OTYPER &= ~((1<<TRIG_PIN) | (1<<LIGHTS_FRONT_PIN)); // push pull
-                      ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-gpio.c(36): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
-        GPIOB->PUPDR &= ~((1<<(2*TRIG_PIN)) | (1<<(2*TRIG_PIN+1)) | (1<<(2*LIGHTS_FRONT_PIN)) | (1<<(2*LIGHTS_FRONT_PIN+1)));
-                     ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-gpio.c(38): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
-        GPIOC->OTYPER &= ~((1<<DC_IN_3_PIN) | (1<<DC_IN_4_PIN) | (1<<DC_IN_1_PIN) | (1<<DC_IN_2_PIN) | (1<<BUZZER_PIN) | (1<<LEFT_LIGHT_PIN) | (1<<RIGHT_LIGHT_PIN)); // push pull
-                      ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-gpio.c(40): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
-        GPIOC->PUPDR &= ~((1<<(2*DC_IN_3_PIN)) | (1<<(2*DC_IN_3_PIN+1)) | (1<<(2*DC_IN_4_PIN)) | (1<<(2*DC_IN_4_PIN+1)) | (1<<(2*DC_IN_1_PIN)) | (1<<(2*DC_IN_1_PIN+1)) | (1<<(2*DC_IN_2_PIN)) | (1<<(2*DC_IN_2_PIN+1)) | (1<<(2*BUZZER_PIN)) | (1<<(2*BUZZER_PIN+1)) | (1<<(2*LEFT_LIGHT_PIN)) | (1<<(2*LEFT_LIGHT_PIN+1)) | (1<<(2*RIGHT_LIGHT_PIN)) | (1<<(2*RIGHT_LIGHT_PIN+1)));
-                     ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-gpio.c(43): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
-        GPIOA->MODER &= ~(1<<(2*ECHO_PIN+1) | (1<<(2*ECHO_PIN))); 
-                     ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-gpio.c(46): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
-        GPIOC->MODER &= ~(1<<((2*USER_BUTTON)+1) | (1<<(2*USER_BUTTON)) );
-                     ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-8 warnings generated.
-compiling gpio.c...
+compiling pwm.c...
+compiling spi.c...
 systemClock.c(22): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
           PWR->CR &= ~(1 << 14) ;
                   ~~ ^~~~~~~~~~
@@ -77,29 +52,50 @@ void test()
 static 
 5 warnings generated.
 compiling systemClock.c...
-compiling pwm.c...
-compiling system_stm32f4xx.c...
-uart.c(24): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
+compiling periodicTimer.c...
+uart.c(23): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
           USART2->CR1 &= ~(1 << 12);
                       ~~ ^~~~~~~~~~
-uart.c(68): warning: implicit conversion loses integer precision: 'volatile uint32_t' (aka 'volatile unsigned int') to 'uint8_t' (aka 'unsigned char') [-Wimplicit-int-conversion]
+uart.c(66): warning: implicit conversion loses integer precision: 'volatile uint32_t' (aka 'volatile unsigned int') to 'uint8_t' (aka 'unsigned char') [-Wimplicit-int-conversion]
         return USART2->DR;
         ~~~~~~ ~~~~~~~~^~
 2 warnings generated.
 compiling uart.c...
-main.c(139): warning: if statement has empty body [-Wempty-body]
-          else if(isRightLightActive == 0) ;//HAL_GPIO_WritePin(LIGHTS_FRONT_GPIO_Port, LIGHTS_FRONT_Pin, GPIO_PIN_RESET);
-                                           ^
-main.c(139): note: put the semicolon on a separate line to silence this warning
-main.c(146): warning: if statement has empty body [-Wempty-body]
-          else if(isLeftLightActive == 0) ;//HAL_GPIO_WritePin(ON_BOARD_LED_GPIO_Port, ON_BOARD_LED_Pin, GPIO_PIN_RESET);
-                                          ^
-main.c(146): note: put the semicolon on a separate line to silence this warning
-2 warnings generated.
+gpio.c(31): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
+        GPIOA->OTYPER &= ~((1<<ON_BOARD_LED_PIN) | (1<<LIGHTS_BACK_PIN)); // push pull
+                      ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gpio.c(33): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
+        GPIOA->PUPDR &= ~((1<<(2*ON_BOARD_LED_PIN)) | (1<<(2*ON_BOARD_LED_PIN+1)) | (1<<(2*LIGHTS_BACK_PIN)) | (1<<(2*LIGHTS_BACK_PIN+1)));
+                     ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gpio.c(35): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
+        GPIOB->OTYPER &= ~((1<<TRIG_PIN) | (1<<LIGHTS_FRONT_PIN)); // push pull
+                      ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gpio.c(37): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
+        GPIOB->PUPDR &= ~((1<<(2*TRIG_PIN)) | (1<<(2*TRIG_PIN+1)) | (1<<(2*LIGHTS_FRONT_PIN)) | (1<<(2*LIGHTS_FRONT_PIN+1)));
+                     ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gpio.c(39): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
+        GPIOC->OTYPER &= ~((1<<DC_IN_3_PIN) | (1<<DC_IN_4_PIN) | (1<<DC_IN_1_PIN) | (1<<DC_IN_2_PIN) | (1<<BUZZER_PIN) | (1<<LEFT_LIGHT_PIN) | (1<<RIGHT_LIGHT_PIN)); // push pull
+                      ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gpio.c(41): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
+        GPIOC->PUPDR &= ~((1<<(2*DC_IN_3_PIN)) | (1<<(2*DC_IN_3_PIN+1)) | (1<<(2*DC_IN_4_PIN)) | (1<<(2*DC_IN_4_PIN+1)) | (1<<(2*DC_IN_1_PIN)) | (1<<(2*DC_IN_1_PIN+1)) | (1<<(2*DC_IN_2_PIN)) | (1<<(2*DC_IN_2_PIN+1)) | (1<<(2*BUZZER_PIN)) | (1<<(2*BUZZER_PIN+1)) | (1<<(2*LEFT_LIGHT_PIN)) | (1<<(2*LEFT_LIGHT_PIN+1)) | (1<<(2*RIGHT_LIGHT_PIN)) | (1<<(2*RIGHT_LIGHT_PIN+1)));
+                     ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gpio.c(44): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
+        GPIOA->MODER &= ~(1<<(2*ECHO_PIN+1) | (1<<(2*ECHO_PIN))); 
+                     ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gpio.c(47): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
+        GPIOC->MODER &= ~(1<<((2*USER_BUTTON)+1) | (1<<(2*USER_BUTTON)) );
+                     ~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gpio.c(56): warning: implicit conversion changes signedness: 'int' to 'unsigned int' [-Wsign-conversion]
+        EXTI->RTSR &= ~(1<<13); // set rising edge
+                   ~~ ^~~~~~~~
+9 warnings generated.
+compiling gpio.c...
 compiling main.c...
+assembling startup_stm32f411xe.s...
+compiling system_stm32f4xx.c...
 linking...
-Program Size: Code=1964 RO-data=440 RW-data=4 ZI-data=1640  
-".\Objects\RemoteControlledCarBareMetal.axf" - 0 Error(s), 17 Warning(s).
+Program Size: Code=3020 RO-data=440 RW-data=4 ZI-data=1648  
+".\Objects\RemoteControlledCarBareMetal.axf" - 0 Error(s), 16 Warning(s).
 
 <h2>Software Packages used:</h2>
 
@@ -127,8 +123,8 @@ Package Vendor: Keil
    * Component: Keil::Device:Startup:2.6.3
       Source file:   MDK\Device\Source\ARM\STM32F4xx_OTP.s
       Include file:  Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h
-      Source file:   MDK\Device\Source\ARM\STM32F411xx_OPT.s
       Source file:   Drivers\CMSIS\Device\ST\STM32F4xx\Source\Templates\arm\startup_stm32f411xe.s
+      Source file:   MDK\Device\Source\ARM\STM32F411xx_OPT.s
       Source file:   Drivers\CMSIS\Device\ST\STM32F4xx\Source\Templates\system_stm32f4xx.c
 Build Time Elapsed:  00:00:01
 </pre>

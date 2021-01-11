@@ -6,9 +6,9 @@ void USART_INIT(void)
     RCC->APB1ENR |= (1 << 17);
 	
 	// set pin modes as alternate mode 7 (pins 2 and 3)
-    // USART2 TX and RX pins are PA2 and PA3 respectively
-    GPIOA->MODER &= ~(0xFU << 4); // Reset bits 4:5 for PA2 and 6:7 for PA3
-    GPIOA->MODER |=  (0xAU << 4); // Set   bits 4:5 for PA2 and 6:7 for PA3 to alternate mode (10)
+    // USART2 TX and RX pins are PA2 and PA3 
+	// 10: Alternate function mode
+   GPIOA->MODER |=  (2<< 4) | (2 << 6); // Set   bits 4:5 for PA2 and 6:7 for PA3 to alternate mode (10)
 	
 	GPIOA->OSPEEDR |= (3<<4) | (3<<6);  // Bits (5:4)= 1:1 and Bits (7:6)= 1:1 --> High Speed for PIN PA2 and PA3
 	
@@ -20,14 +20,12 @@ void USART_INIT(void)
 	 USART2->CR1 = 0x00;
  	 USART2->CR1 = (1 << 13);
 	
-	
 	  USART2->CR1 &= ~(1 << 12);
 		 
-		 // 546 14
-		 // 104 3
-		 // 312 8
+		 // 546 14  --84 MHz
+		 // 104 3  --16MHz 
+		 // 312 8 -- 48MHz
 	  USART2->BRR |= (104 << 4) | (3 << 0); //clk 16 baudrate 9600
-		
 		
 
     // USART2 parity control, bit 9
@@ -45,7 +43,7 @@ void USART_INIT(void)
 
     // now that everything is ready,
     // enable tx interrupt and let it push out
-    USART2->CR1 |= (1 << 7);
+    //USART2->CR1 |= (1 << 7);
 		USART2->CR1 |= (1 << 5);
 }
 

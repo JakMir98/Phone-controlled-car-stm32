@@ -1,3 +1,6 @@
+#ifndef pwm_h
+#define pwm_h
+
 #include "stm32f411xe.h"
 #include "system_stm32f4xx.h"
 
@@ -7,3 +10,5 @@
 #define PWM_LED_FRONT_PIN 								10
 
 void PWM_INIT(void);
+
+#endif

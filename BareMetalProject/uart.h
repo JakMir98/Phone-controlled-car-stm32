@@ -1,3 +1,6 @@
+#ifndef uart_h
+#define uart_h
+
 #include "stm32f411xe.h"
 #include "system_stm32f4xx.h"
 
@@ -25,3 +28,5 @@ void USART2_SendChar(uint8_t);
 void USART2_SendString(char *);
 	
 uint8_t USART2_GetChar(void);
+
+#endif

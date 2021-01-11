@@ -1,9 +1,10 @@
 #include "stm32f411xe.h"
 #include "system_stm32f4xx.h"
-#include "systemClock.h"
 #include "gpio.h"
 #include "uart.h"
 #include "pwm.h"
+#include "spi.h"
+#include "periodicTimer.h"
 
 // constants define
 #define SPEED_MAX_LEVEL 										3
@@ -28,21 +29,22 @@ typedef enum
 } State;
 
 // VARIABLES
-static State state = RESTING;
+static volatile State state = RESETTING;
 //uart handling
-uint8_t static received;
+static uint8_t received;
 
 // speed counters
-static uint8_t forwardCounter = 0;
-static uint8_t backwardCounter = 0;
+static uint8_t forwardCounter = 				0;
+static uint8_t backwardCounter = 		0;
 static uint8_t rightTurningCounter = 0;
-static uint8_t leftTurningCounter = 0;
-static uint8_t lightsBrightness = 0;
+static uint8_t leftTurningCounter = 	0;
+static uint8_t lightsBrightness = 			0;
 
 // light ticks handle
-static  uint8_t isRightLightActive=0;
-static  uint8_t isLeftLightActive=0;
-
+static  uint8_t isRightLightActive = 	0;
+static  uint8_t isLeftLightActive = 		0;
+static  uint8_t isRightOn = 	0;
+static  uint8_t isLeftOn = 		0;
 extern uint32_t SystemCoreClock;
 // FUNCTION PROTOTYPES
 
@@ -70,21 +72,14 @@ void USART2_IRQHandler(void);
 int main(void)
 {
 	SystemInit();
-	//SYS_CLOCK_INIT();
 	GPIO_INIT();
-	//PWM_INIT();
+	USART_INIT();
+	PWM_INIT();
+	SPI_INIT();
+	PERIODIC_TIMER_INIT();
 	
 	while(1)
 	{
-		if (ReadPinOnGPIOC(USER_BUTTON)) // if PC13 is high
- 		{
-			ResetPinOnGPIOA(ON_BOARD_LED_PIN);
- 		}
- 		else
- 		{
-			SetPinOnGPIOA(ON_BOARD_LED_PIN);
- 		}
-		
 			switch(state)
 	  {
 		  case RESTING:
@@ -118,20 +113,6 @@ int main(void)
 			  LightsOff();
 			  break;
 	  }
-
-	  if(isRightLightActive == 1)
-	  {
-		  RightLightTickHandle();
-		  //HAL_GPIO_WritePin(ON_BOARD_LED_GPIO_Port, ON_BOARD_LED_Pin, GPIO_PIN_RESET);
-	  }
-	  else if(isRightLightActive == 0) ;//HAL_GPIO_WritePin(LIGHTS_FRONT_GPIO_Port, LIGHTS_FRONT_Pin, GPIO_PIN_RESET);
-
-	  if(isLeftLightActive == 1)
-	  {
-		  LeftLightTickHandle();
-		  //HAL_GPIO_WritePin(LIGHTS_FRONT_GPIO_Port, LIGHTS_FRONT_Pin, GPIO_PIN_RESET);
-	  }
-	  else if(isLeftLightActive == 0) ;//HAL_GPIO_WritePin(ON_BOARD_LED_GPIO_Port, ON_BOARD_LED_Pin, GPIO_PIN_RESET);
 	}
 }
 
@@ -177,37 +158,78 @@ void USART2_IRQHandler(void)
 					if (leftTurningCounter > TURNING_MAX_LEVEL) leftTurningCounter = 0;
 				}
 				else if(received == HORN_CHAR )
+				{
+					USART2_SendString("horn");
 					state = HORN;
+				}	
 				else if(received == ADJUST_BRIGHTNESS_CHAR )
 				{
 					state = FRONT_LIGHTS_BRIGHTNESS_CHANGE;
 					lightsBrightness++;
+					USART2_SendString("adjust");
 					if (lightsBrightness > SPEED_MAX_LEVEL) lightsBrightness = 0;
 				}
 				else if(received == LIGHTS_ON_CHAR  )
+				{
+					USART2_SendString("lights on");
 					state = LIGHTS_ON;
+				}
 				else if(received == LIGHTS_OFF_CHAR  )
+				{
+					USART2_SendString("lights off");
 					state = LIGHTS_OFF;
+				}
 				else if(received == DO_NOTHING_CHAR  )
+				{
+					USART2_SendString("nothing");
 					state = RESTING;
+				}
 				else if(received == RESET_CHAR  )
+				{
+					USART2_SendString("reset\n");
 						state = RESETTING;
+				}
 				else if(received == LEFT_LIGHT_CHAR)
 				{
+					USART2_SendString("left light");
 					isRightLightActive = 0;
 					if (isLeftLightActive == 0) isLeftLightActive = 1;
 					else isLeftLightActive = 0;
 				}
 				else if(received == RIGHT_LIGHT_CHAR  )
 				{
+					USART2_SendString("right light");
 					isLeftLightActive = 0;
 					if (isRightLightActive == 0) isRightLightActive = 1;
 					else isRightLightActive = 0;
 				}
     }
-		//USART2->CR1 |= (1 << 7);
+		//USART2->CR1 |= (1 << 7); transmiting interrupt not needed
 		USART2->CR1 |= (1 << 5);
 }
+
+void TIM1_UP_TIM10_IRQHandler(void)
+{
+	 if (TIM10->DIER & 0x01) {
+        if (TIM10->SR & 0x01) {
+            TIM10->SR &= ~(1U << 0);
+        }
+    }
+			 if(isRightOn == 0) isRightOn = 1;
+			 else isRightOn = 	0;
+		
+			if(isLeftOn == 0) isLeftOn = 1;
+			else isLeftOn = 	0;
+		
+			if (isRightLightActive == 1 && isRightOn == 1) SetPin(GPIOC, RIGHT_LIGHT_PIN);
+		  else if (isRightLightActive == 1 && isRightOn == 0) ResetPin(GPIOC, RIGHT_LIGHT_PIN);
+		  else if (isLeftLightActive == 1 && isLeftOn == 1) SetPin(GPIOC, LEFT_LIGHT_PIN);
+		  else if (isLeftLightActive == 1 && isLeftOn == 0) ResetPin(GPIOC, LEFT_LIGHT_PIN);
+		
+		  if (isRightLightActive == 0) ResetPin(GPIOC, RIGHT_LIGHT_PIN);
+			else if(isLeftLightActive == 0) ResetPin(GPIOC, LEFT_LIGHT_PIN);
+}
+
 
 void GoForward()
 {
@@ -240,40 +262,34 @@ void TurnLeft()
 
 void Horn()
 {
-	SetPinOnGPIOC(BUZZER_PIN);
+	SetPin(GPIOC, BUZZER_PIN);
 	delayMs(250);
-	ResetPinOnGPIOC(BUZZER_PIN);
+	ResetPin(GPIOC, BUZZER_PIN);
 	state = RESTING;
 }
 
 void LightsOn()
 {
-	SetPinOnGPIOA(LIGHTS_BACK_PIN);
-	SetPinOnGPIOB(LIGHTS_FRONT_PIN);
-	// todo 
+	SetPin(GPIOA, LIGHTS_BACK_PIN);
+	SetPin(GPIOB, LIGHTS_FRONT_PIN);
 	TIM1->CCR3 = 50;
 }
 
 void LightsOff()
 {
-	ResetPinOnGPIOA(LIGHTS_BACK_PIN);
-	ResetPinOnGPIOB(LIGHTS_FRONT_PIN);
-	// todo
+	ResetPin(GPIOA, LIGHTS_BACK_PIN);
+	ResetPin(GPIOB, LIGHTS_FRONT_PIN);
 	TIM1->CCR3 = 0;
 }
 
 void RightLightTickHandle(void)
 {
-	// todo spi1
-	//HAL_GPIO_TogglePin(LIGHTS_FRONT_GPIO_Port, LIGHTS_FRONT_Pin);
-	//HAL_Delay(500);
+	
 }
 
 void LeftLightTickHandle(void)
 {
-	// todo spi2
-	//HAL_GPIO_TogglePin(ON_BOARD_LED_GPIO_Port, ON_BOARD_LED_Pin);
-	//HAL_Delay(500);
+	
 }
 
 void AdjustBrightness()
@@ -288,57 +304,59 @@ void AdjustBrightness()
 void MotorsForward(uint8_t pwm_value1)
 {
 	TIM1->CCR1 = pwm_value1;
-	SetPinOnGPIOC(DC_IN_1_PIN);
-	ResetPinOnGPIOC(DC_IN_2_PIN);
-
+	SetPin(GPIOC, DC_IN_1_PIN);
+	ResetPin(GPIOC, DC_IN_2_PIN);
+	
 	TIM1->CCR2 = pwm_value1;
-	SetPinOnGPIOC(DC_IN_3_PIN);
-	ResetPinOnGPIOC(DC_IN_4_PIN);
+	SetPin(GPIOC, DC_IN_3_PIN);
+	ResetPin(GPIOC, DC_IN_4_PIN);
 }
 
 void MotorsBackward(uint8_t pwm_value1)
 {
 	TIM1->CCR1 = pwm_value1;
-	ResetPinOnGPIOC(DC_IN_1_PIN);
-	SetPinOnGPIOC(DC_IN_2_PIN);
+	ResetPin(GPIOC, DC_IN_1_PIN);
+	SetPin(GPIOC, DC_IN_2_PIN);
 
 	TIM1->CCR2 = pwm_value1;
-	ResetPinOnGPIOC(DC_IN_3_PIN);
-	SetPinOnGPIOC(DC_IN_4_PIN);
+	ResetPin(GPIOC, DC_IN_3_PIN);
+	SetPin(GPIOC, DC_IN_4_PIN);
 }
 
 void MotorsTurningRight(uint8_t pwm_value1)
 {
 	TIM1->CCR1 = pwm_value1;
-	SetPinOnGPIOC(DC_IN_1_PIN);
-	ResetPinOnGPIOC(DC_IN_2_PIN);
+	SetPin(GPIOC, DC_IN_1_PIN);
+	ResetPin(GPIOC, DC_IN_2_PIN);
 
 	TIM1->CCR2 = pwm_value1;
-	ResetPinOnGPIOC(DC_IN_3_PIN);
-	SetPinOnGPIOC(DC_IN_4_PIN);
+	ResetPin(GPIOC, DC_IN_3_PIN);
+	SetPin(GPIOC, DC_IN_4_PIN);
 }
 
 void MotorsTurningLeft(uint8_t pwm_value1)
 {
 	TIM1->CCR1 = pwm_value1;
-	ResetPinOnGPIOC(DC_IN_1_PIN);
-	SetPinOnGPIOC(DC_IN_2_PIN);
+	ResetPin(GPIOC, DC_IN_1_PIN);
+	SetPin(GPIOC, DC_IN_2_PIN);
 
 	TIM1->CCR2 = pwm_value1;
-	SetPinOnGPIOC(DC_IN_3_PIN);
-	ResetPinOnGPIOC(DC_IN_4_PIN);
+	SetPin(GPIOC, DC_IN_3_PIN);
+	ResetPin(GPIOC, DC_IN_4_PIN);
 }
 
 void Reset()
 {
-	ResetPinOnGPIOC(DC_IN_1_PIN);
-	ResetPinOnGPIOC(DC_IN_2_PIN);
-	ResetPinOnGPIOC(DC_IN_3_PIN);
-	ResetPinOnGPIOC(DC_IN_4_PIN);
+	TIM1->CCR1 = 0;
+	TIM1->CCR2 = 0;
+	ResetPin(GPIOC, DC_IN_1_PIN);
+	ResetPin(GPIOC, DC_IN_2_PIN);
+	ResetPin(GPIOC, DC_IN_3_PIN);
+	ResetPin(GPIOC, DC_IN_4_PIN);
 	
-	ResetPinOnGPIOA(ON_BOARD_LED_PIN);
-	ResetPinOnGPIOA(LIGHTS_BACK_PIN);
-	ResetPinOnGPIOB(LIGHTS_FRONT_PIN);
+	ResetPin(GPIOA, ON_BOARD_LED_PIN);
+	ResetPin(GPIOA, LIGHTS_BACK_PIN);
+	ResetPin(GPIOB, LIGHTS_FRONT_PIN);
 
 	forwardCounter = 0;
 	backwardCounter = 0;
@@ -350,17 +368,18 @@ void Reset()
 
 void MotorsReset()
 {
-	ResetPinOnGPIOC(DC_IN_1_PIN);
-	ResetPinOnGPIOC(DC_IN_2_PIN);
-	ResetPinOnGPIOC(DC_IN_3_PIN);
-	ResetPinOnGPIOC(DC_IN_4_PIN);
-	state = RESTING;
+	TIM1->CCR1 = 0;
+	TIM1->CCR2 = 0;
+	ResetPin(GPIOC, DC_IN_1_PIN);
+	ResetPin(GPIOC, DC_IN_2_PIN);
+	ResetPin(GPIOC, DC_IN_3_PIN);
+	ResetPin(GPIOC, DC_IN_4_PIN);
 }
 
 void WaitForAction()
 {
 	state = RESTING;
-	//MotorsReset();
+	MotorsReset();
 	//__WFI();
 }
 

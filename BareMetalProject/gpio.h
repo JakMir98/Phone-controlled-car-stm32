@@ -1,3 +1,6 @@
+#ifndef gpio_h
+#define gpio_h
+
 #include "stm32f411xe.h"
 #include "system_stm32f4xx.h"
 
@@ -20,16 +23,11 @@
 #define LEFT_LIGHT_PIN 													10
 #define USER_BUTTON															13
 
-#define SetPinOnGPIOA(pinNum) (GPIOA->BSRR |= (1<<pinNum))
-#define SetPinOnGPIOB(pinNum) (GPIOB->BSRR |= (1<<pinNum))
-#define SetPinOnGPIOC(pinNum) (GPIOC->BSRR |= (1<<pinNum))
-
-#define ResetPinOnGPIOA(pinNum) (GPIOA->BSRR |= (1<<(16+pinNum)))
-#define ResetPinOnGPIOB(pinNum) (GPIOB->BSRR |= (1<<(16+pinNum)))
-#define ResetPinOnGPIOC(pinNum) (GPIOC->BSRR |= (1<<(16+pinNum)))
-
-#define ReadPinOnGPIOA(pinNum) (GPIOA->IDR & (1<<pinNum))
-#define ReadPinOnGPIOB(pinNum) (GPIOB->IDR & (1<<pinNum))
-#define ReadPinOnGPIOC(pinNum) (GPIOC->IDR & (1<<pinNum))
+#define SetPin(port, pinNum) (port->BSRR |= (1<<pinNum))
+#define ResetPin(port, pinNum) (port->BSRR |= (1<<(16+pinNum)))
+#define ReadPin(port, pinNum) (port->IDR & (1<<pinNum))
 
 void GPIO_INIT(void);
+void EXTI15_10_IRQHandler(void);
+
+#endif
