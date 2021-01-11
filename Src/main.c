@@ -113,6 +113,8 @@ uint8_t lightsBrightness = 0;
 uint8_t isRightLightActive=0;
 uint8_t isLeftLightActive=0;
 
+uint8_t isRightOn =0;
+uint8_t isLeftOn =0;
 
 State state = RESTING;
 
@@ -178,6 +180,35 @@ void Andzej_SPI_Init()
 	SPI1->CR1 = SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_SPE | SPI_CR1_MSTR;
 }
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if(htim->Instance == TIM2)
+	{
+		if(isRightOn == 0)
+			isRightOn = 1;
+		else isRightOn = 0;
+		if(isLeftOn == 0)
+			isLeftOn = 1;
+		else isLeftOn = 0;
+
+		if(isRightLightActive == 1)
+		{
+			RightLight();
+		}
+	    else if(isRightLightActive == 0)
+	    {
+		  MCP_Write_Reg(MCP_OLAT, 0x00); // both off
+	    }
+
+		  if(isLeftLightActive == 1)
+		  {
+			 LeftLight();
+		  }
+		  else if((isLeftLightActive == 0 ) & ( isRightLightActive == 0)) {
+			 MCP_Write_Reg(MCP_OLAT, 0x00); // both off
+		  }
+	}
+}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -194,6 +225,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		backwardCounter++;
 		if (backwardCounter > SPEED_MAX_LEVEL) backwardCounter = 0;
 	}
+	else if(received == RESET_CHAR)
+		{
+			state = RESETTING;
+		}
 	else if(received == TURN_RIGHT_CHAR )
 	{
 		state = TURN_RIGHT;
@@ -220,7 +255,18 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		state = LIGHTS_OFF;
 	else if(received == DO_NOTHING_CHAR  )
 		state = RESTING;
-
+	else if(received == LEFT_LIGHT_CHAR)
+		{
+			isRightLightActive = 0;
+			if (isLeftLightActive == 0) isLeftLightActive = 1;
+			else isLeftLightActive = 0;
+		}
+	else if(received == RIGHT_LIGHT_CHAR  )
+		{
+			isLeftLightActive = 0;
+			if (isRightLightActive == 0) isRightLightActive = 1;
+			else isRightLightActive = 0;
+		}
 	HAL_UART_Receive_IT(&huart2, &received, 1); // Ponowne włączenie nasłuchiwania
 }
 void GoForward()
@@ -269,22 +315,20 @@ void LightsOff()
 void RightLight()
 {
 	 //dioda SPI 1
-	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
-	MCP_Write_Reg(MCP_OLAT, 0x01);
-    HAL_Delay(1000);
-    MCP_Write_Reg(MCP_OLAT, 0x00);
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
+	if (isRightOn==1)
+		MCP_Write_Reg(MCP_OLAT, 0x01);//right turn on
+	else
+		MCP_Write_Reg(MCP_OLAT, 0x00);
 }
 
 void LeftLight()
 {
 	//dioda SPI 2
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_SET);//check
-    HAL_Delay(1000);
-    MCP_Write_Reg(MCP_OLAT, 0x02);
-    HAL_Delay(1000);
-    MCP_Write_Reg(MCP_OLAT, 0x00);
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
+	if (isLeftOn==1)
+		MCP_Write_Reg(MCP_OLAT, 0x02); //left turn on
+	else
+		MCP_Write_Reg(MCP_OLAT, 0x00);
+
 }
 void AdjustBrightness()
 {
@@ -402,6 +446,7 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM1_Init();
   MX_USART2_UART_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
@@ -410,8 +455,8 @@ int main(void)
   Andzej_SPI_Init();
   MCP_Write_Reg(MCP_IODIR, ~0x03);
   HAL_UART_Receive_IT(&huart2, &received, 1);
-  //MotorsForward(100);
-  //HAL_Delay(1000);
+
+  HAL_TIM_Base_Start_IT(&htim2);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -452,27 +497,7 @@ int main(void)
 	 			  LightsOff();
 	 			  break;
 	 	  }
-	  if(isRightLightActive == 1)
-	 	  {
-	 		 // RightLight();
-	 		  MCP_Write_Reg(MCP_OLAT, 0x00);
-	 		  //HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
-	 	  }
-	  else if(isRightLightActive == 0) {
-		  MCP_Write_Reg(MCP_OLAT, 0x00);
-		  //HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
-	  }
 
-	 	  if(isLeftLightActive == 1)
-	 	  {
-	 		  //LeftLight();
-	 		 MCP_Write_Reg(MCP_OLAT, 0x00);
-	 		 //HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
-	 	  }
-	 	  else if(isLeftLightActive == 0) {
-	 		 MCP_Write_Reg(MCP_OLAT, 0x00);
-	 		// HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
-	 	  }
 
     /* USER CODE END WHILE */
 
