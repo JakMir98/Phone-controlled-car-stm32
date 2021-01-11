@@ -30,6 +30,21 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+
+//FSM
+typedef enum
+{
+	GO_FORWARD,
+	GO_BACKWARD,
+	TURN_RIGHT,
+	TURN_LEFT,
+	HORN,
+	FRONT_LIGHTS_BRIGHTNESS_CHANGE,
+	LIGHTS_ON,
+	LIGHTS_OFF,
+	RESETTING,
+	RESTING
+} State;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -49,22 +64,25 @@
 #define MCP_OLAT 		0x0A
 
 //UART handling
-#define GO_FORWARD_CHAR 'u'
-#define GO_BACKWARD_CHAR 'd'
-#define TURN_RIGHT_CHAR 'r'
-#define TURN_LEFT_CHAR 'l'
-#define HORN_CHAR 'h'
+#define GO_FORWARD_CHAR 	'u'
+#define GO_BACKWARD_CHAR 	'd'
+#define TURN_RIGHT_CHAR 	'r'
+#define TURN_LEFT_CHAR 		'l'
+#define HORN_CHAR 			'h'
 #define ADJUST_BRIGHTNESS_CHAR 'a'
-#define LIGHTS_ON_CHAR 'o'
-#define LIGHTS_OFF_CHAR 'f'
-#define DO_NOTHING_CHAR 'n'
+#define LIGHTS_ON_CHAR 		'o'
+#define LIGHTS_OFF_CHAR 	'f'
+#define DO_NOTHING_CHAR 	'n'
+#define RESET_CHAR 			'x'
+#define RIGHT_LIGHT_CHAR 	'b'
+#define LEFT_LIGHT_CHAR  	'v'
 
 //usefull constants
 #define SPEED_MAX_LEVEL 3
 #define TURNING_MAX_LEVEL 1
 #define MOTOR_SPEED_MIN 25
 #define MOTOR_SPEED_MEDIUM 50
-#define MOTOR_SPEED_MORE_MEDIUM 75
+#define MOTOR_SPEED_MADMAX 75
 #define MOTOR_SPEED_MAX 100
 /* USER CODE END PD */
 
@@ -79,7 +97,7 @@
 
 //UART variable
 //uint8_t buffer[10];
-char received;
+uint8_t received;
 
 //HC-sr04 future variables
 //uint32_t local_time, sensor_time;
@@ -90,6 +108,16 @@ uint8_t backwardCounter = 0;
 uint8_t rightTurningCounter = 0;
 uint8_t leftTurningCounter = 0;
 uint8_t lightsBrightness = 0;
+
+// light ticks handle
+uint8_t isRightLightActive=0;
+uint8_t isLeftLightActive=0;
+
+uint8_t isRightOn =0;
+uint8_t isLeftOn =0;
+
+State state = RESTING;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -115,8 +143,10 @@ void MotorsForward(uint8_t pwm_value1);
 void MotorsTurningRight(uint8_t pwm_value1);
 void MotorsTurningLeft(uint8_t pwm_value1);
 void Reset(void);
-void RightLight(void);
-void LeftLight(void);
+void RightLight(void); //todo
+void LeftLight(void);  //todo
+void WaitForAction(void);
+void MotorsReset(uint32_t);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -141,35 +171,47 @@ void MCP_Write_Reg(uint8_t addr, uint8_t value)
 
 void Andzej_SPI_Init()
 {
-	RCC->APB2ENR = RCC_APB2ENR_IOPAEN | RCC_APB2ENR_SPI1EN;
+	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_SPI1EN;
 
-	GPIOA->CRL |= GPIO_CRL_MODE0_0 + GPIO_CRL_MODE5_0 + GPIO_CRL_MODE7_0;
-	GPIOA->CRL &= ~(GPIO_CRL_CNF0_0 + GPIO_CRL_CNF5_0 + GPIO_CRL_CNF6_0 + GPIO_CRL_CNF7_0);
-	GPIOA->CRL |= GPIO_CRL_CNF5_1 + GPIO_CRL_CNF6_1 + GPIO_CRL_CNF7_1;
+	GPIOA->CRL |= GPIO_CRL_MODE0_0 | GPIO_CRL_MODE5_0 | GPIO_CRL_MODE7_0;
+	GPIOA->CRL &= ~(GPIO_CRL_CNF0_0 | GPIO_CRL_CNF5_0 | GPIO_CRL_CNF6_0 | GPIO_CRL_CNF7_0);
+	GPIOA->CRL |= GPIO_CRL_CNF5_1 | GPIO_CRL_CNF6_1 | GPIO_CRL_CNF7_1;
 
 	SPI1->CR1 = SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_SPE | SPI_CR1_MSTR;
 }
 
-//FSM
-typedef enum
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	GO_FORWARD,
-	GO_BACKWARD,
-	TURN_RIGHT,
-	TURN_LEFT,
-	HORN,
-	FRONT_LIGHTS_BRIGHTNESS_CHANGE,
-	LIGHTS_ON,
-	LIGHTS_OFF,
-	RESTING
-} State;
+	if(htim->Instance == TIM2)
+	{
+		if(isRightOn == 0)
+			isRightOn = 1;
+		else isRightOn = 0;
+		if(isLeftOn == 0)
+			isLeftOn = 1;
+		else isLeftOn = 0;
 
-State state = RESTING;
+		if(isRightLightActive == 1)
+		{
+			RightLight();
+		}
+	    else if(isRightLightActive == 0)
+	    {
+		  MCP_Write_Reg(MCP_OLAT, 0x00); // both off
+	    }
+
+		  if(isLeftLightActive == 1)
+		  {
+			 LeftLight();
+		  }
+		  else if((isLeftLightActive == 0 ) & ( isRightLightActive == 0)) {
+			 MCP_Write_Reg(MCP_OLAT, 0x00); // both off
+		  }
+	}
+}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	uint8_t Data[50]; // Tablica przechowujaca wysylana wiadomosc.
-	uint16_t size = 0; // Rozmiar wysylanej wiadomosci
 
 	if(received == GO_FORWARD_CHAR)
 	{
@@ -183,6 +225,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		backwardCounter++;
 		if (backwardCounter > SPEED_MAX_LEVEL) backwardCounter = 0;
 	}
+	else if(received == RESET_CHAR)
+		{
+			state = RESETTING;
+		}
 	else if(received == TURN_RIGHT_CHAR )
 	{
 		state = TURN_RIGHT;
@@ -209,15 +255,25 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		state = LIGHTS_OFF;
 	else if(received == DO_NOTHING_CHAR  )
 		state = RESTING;
-
-	HAL_UART_Transmit_IT(&huart2, Data, size); // Rozpoczecie nadawania danych z wykorzystaniem przerwan
+	else if(received == LEFT_LIGHT_CHAR)
+		{
+			isRightLightActive = 0;
+			if (isLeftLightActive == 0) isLeftLightActive = 1;
+			else isLeftLightActive = 0;
+		}
+	else if(received == RIGHT_LIGHT_CHAR  )
+		{
+			isLeftLightActive = 0;
+			if (isRightLightActive == 0) isRightLightActive = 1;
+			else isRightLightActive = 0;
+		}
 	HAL_UART_Receive_IT(&huart2, &received, 1); // Ponowne włączenie nasłuchiwania
 }
 void GoForward()
 {
 	if (forwardCounter == 0) MotorsForward(MOTOR_SPEED_MIN);
 	else if (forwardCounter == 1) MotorsForward(MOTOR_SPEED_MEDIUM);
-	else if (forwardCounter == 2) MotorsForward(MOTOR_SPEED_MORE_MEDIUM);
+	else if (forwardCounter == 2) MotorsForward(MOTOR_SPEED_MADMAX);
 	else MotorsForward(MOTOR_SPEED_MAX);
 
 }
@@ -225,7 +281,7 @@ void GoBackward()
 {
 	if (backwardCounter == 0) MotorsBackward(MOTOR_SPEED_MIN);
 	else if (backwardCounter == 1) MotorsBackward(MOTOR_SPEED_MEDIUM);
-	else if (backwardCounter == 2) MotorsBackward(MOTOR_SPEED_MORE_MEDIUM);
+	else if (backwardCounter == 2) MotorsBackward(MOTOR_SPEED_MADMAX);
 	else MotorsBackward(MOTOR_SPEED_MAX);
 }
 void TurnRight()
@@ -259,23 +315,20 @@ void LightsOff()
 void RightLight()
 {
 	 //dioda SPI 1
-	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
-	MCP_Write_Reg(MCP_OLAT, 0x01);
-    HAL_Delay(1000);
-    MCP_Write_Reg(MCP_OLAT, 0x00);
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
+	if (isRightOn==1)
+		MCP_Write_Reg(MCP_OLAT, 0x01);//right turn on
+	else
+		MCP_Write_Reg(MCP_OLAT, 0x00);
 }
 
 void LeftLight()
 {
 	//dioda SPI 2
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_SET);//check
-    HAL_Delay(1000);
-    MCP_Write_Reg(MCP_OLAT, 0x02);
-    HAL_Delay(1000);
-    MCP_Write_Reg(MCP_OLAT, 0x00);
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
-    HAL_Delay(1000);
+	if (isLeftOn==1)
+		MCP_Write_Reg(MCP_OLAT, 0x02); //left turn on
+	else
+		MCP_Write_Reg(MCP_OLAT, 0x00);
+
 }
 void AdjustBrightness()
 {
@@ -299,7 +352,7 @@ void MotorsBackward(uint8_t pwm_value1)
 {
 	TIM1->CCR1 = pwm_value1;
 	HAL_GPIO_WritePin(DC_IN1_GPIO_Port, DC_IN1_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(DC_IN2_GPIO_Port, DC_IN2_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_SET);
 
 	TIM1->CCR2 = pwm_value1;
 	HAL_GPIO_WritePin(DC_IN3_GPIO_Port, DC_IN3_Pin, GPIO_PIN_RESET);
@@ -332,7 +385,35 @@ void Reset()
 	HAL_GPIO_WritePin(DC_IN3_GPIO_Port, DC_IN3_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(DC_IN4_GPIO_Port, DC_IN4_Pin, GPIO_PIN_RESET);
 
+	HAL_GPIO_WritePin(LIGHTS_BACK_GPIO_Port, LIGHTS_BACK_Pin, GPIO_PIN_RESET);
+	MCP_Write_Reg(MCP_OLAT, 0x00);
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LIGHTS_FRONT_GPIO_Port, LIGHTS_FRONT_Pin, GPIO_PIN_RESET);
+
+	forwardCounter = 0;
+	backwardCounter = 0;
+	rightTurningCounter = 0;
+	leftTurningCounter = 0;
+	isLeftLightActive = 0;
+	isRightLightActive = 0;
 }
+void MotorsReset(uint32_t delay)
+{
+	HAL_Delay(delay);
+	HAL_GPIO_WritePin(DC_IN1_GPIO_Port, DC_IN1_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(DC_IN2_GPIO_Port, DC_IN2_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(DC_IN3_GPIO_Port, DC_IN3_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(DC_IN4_GPIO_Port, DC_IN4_Pin, GPIO_PIN_RESET);
+	state = RESTING;
+}
+void WaitForAction()
+{
+	state = RESTING;
+	MotorsReset(0);
+	__WFI();
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -365,16 +446,17 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM1_Init();
   MX_USART2_UART_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_TIM_Base_Start_IT(&htim1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
   Andzej_SPI_Init();
   MCP_Write_Reg(MCP_IODIR, ~0x03);
-
   HAL_UART_Receive_IT(&huart2, &received, 1);
 
+  HAL_TIM_Base_Start_IT(&htim2);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -384,9 +466,12 @@ int main(void)
 
 	  switch(state)
 	 	  {
-	 		  case RESTING:
-	 			  Reset();
-	 			  break;
+	  	  	  case RESTING:
+	  			  WaitForAction();
+	  			  break;
+	  		  case RESETTING:
+	  			  Reset();
+	  			  break;
 	 		  case GO_FORWARD:
 	 			  GoForward();
 	 			  break;
@@ -412,6 +497,7 @@ int main(void)
 	 			  LightsOff();
 	 			  break;
 	 	  }
+
 
     /* USER CODE END WHILE */
 
