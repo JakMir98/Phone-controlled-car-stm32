@@ -1,5 +1,13 @@
 #include "gpio.h"
 
+/**
+ * @brief Enable clock on GPIOA, GPIOB, GPIOC
+* Set pins directions ( 00 input / 01 output / 10 alternate mode / 11 analog mode)
+* Set pins type ( 0 push-pull / 1 open drain)
+* Set pins speed (00 Low speed / 01: Medium speed / 10: Fast speed / 11: High speed)
+* Set pins mode (00 no pull-up, pull-down / 01 pull-up / 10 pull-down / 11 )
+* Additionally setup externall interrupt on pin 13 GPIOC
+ */
 void GPIO_INIT(void)
 {
 	//PA5 - ON_BOARD_LED_PIN
@@ -48,7 +56,6 @@ void GPIO_INIT(void)
 	GPIOC->PUPDR |= (0<<(2*USER_BUTTON));
 	
 	// set interrupt on USER_BUTTON
-	
 	RCC->APB2ENR |= (1<<14);
 	SYSCFG->EXTICR[3] |= (2<<4); //set pinc on ext 13
 	
@@ -56,33 +63,36 @@ void GPIO_INIT(void)
 	EXTI->RTSR &= ~(1<<13); // set rising edge
 	EXTI->FTSR |=  (1 << 13);
 	
-	
 	NVIC_SetPriority(EXTI15_10_IRQn, 1); // Priority level 1
 
-    // enable EXT13 IRQ from NVIC
-    NVIC_EnableIRQ(EXTI15_10_IRQn);
+   // enable EXT13 IRQ from NVIC
+   NVIC_EnableIRQ(EXTI15_10_IRQn);
 		
 }
 
 // testing purposes only
 static uint8_t booleanVal = 0;
+/**
+ * @brief User button interrupt handler
+ */
 void EXTI15_10_IRQHandler(void)
 {
     // Check if the interrupt came from exti0
-    if (EXTI->PR & (1 << USER_BUTTON)){
-					if (booleanVal == 0) // if PC13 is high
-					{
-						ResetPin(GPIOA, ON_BOARD_LED_PIN);
-						booleanVal = 1;
-					}
-					else
-					{
-						SetPin(GPIOA, ON_BOARD_LED_PIN);
-						booleanVal = 0;
-					}
-		
-        // Clear pending bit
-        EXTI->PR = (1 << USER_BUTTON);
+    if (EXTI->PR & (1 << USER_BUTTON))
+		{
+			if (booleanVal == 0) // if PC13 is high
+			{
+				ResetPin(GPIOA, ON_BOARD_LED_PIN);
+				booleanVal = 1;
+			}
+			else
+			{
+				SetPin(GPIOA, ON_BOARD_LED_PIN);
+				booleanVal = 0;
+			}
+
+	// Clear pending bit
+		EXTI->PR = (1 << USER_BUTTON);
     }
 }
 

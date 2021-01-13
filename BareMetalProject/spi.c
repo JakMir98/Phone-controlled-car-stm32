@@ -1,5 +1,14 @@
 #include "spi.h"
 
+/**
+ * @brief SPI initialization,
+ * Enable clock for GPIOC, done in gpio.c
+ * Set pins directions as output, speed fast and alternate mode on pins PC13, PC14 and PC15
+ * Configure CH1, CH2, CH3 as output, active hight, PWM mode 1, center alligned mode 2, 
+ * Enable SPI2 clock
+ * Enable SPI, set master configuration, set software slave management and internal slave select
+e 
+ */
 void SPI_INIT()
 {
 	// clock for c port on in gpio
@@ -18,6 +27,12 @@ void SPI_INIT()
 	SPI1->CR1 = SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_SPE | SPI_CR1_MSTR;
 }
 
+/**
+ * @brief Control output of MCP23S08 expander
+ *
+ * @param address to send.
+ * @param value to set pin to.
+ */
 void MCP_Write_Reg(uint8_t addr, uint8_t value)
 {
 	uint8_t tx_buf[] = {0x40, addr, value};

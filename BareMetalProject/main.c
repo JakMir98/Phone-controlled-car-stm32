@@ -6,7 +6,9 @@
 #include "spi.h"
 #include "periodicTimer.h"
 
-// constants define
+/**************************************************************************************\
+* Private definitions
+\**************************************************************************************/
 #define SPEED_MAX_LEVEL 										3
 #define TURNING_MAX_LEVEL 									1
 #define MOTOR_SPEED_MIN 										25
@@ -14,6 +16,9 @@
 #define MOTOR_SPEED_MORE_MEDIUM 	75
 #define MOTOR_SPEED_MAX 									100
 
+/**************************************************************************************\
+* Private enums
+\**************************************************************************************/
 typedef enum
 {
 	GO_FORWARD,
@@ -28,26 +33,32 @@ typedef enum
 	RESTING
 } State;
 
-// VARIABLES
-static volatile State state = RESETTING;
-//uart handling
-static uint8_t received;
+/**************************************************************************************\
+* Private variables
+\**************************************************************************************/
+static volatile State state = RESETTING; // FSM
+static uint8_t received; // USART handling var
 
 // speed counters
-static uint8_t forwardCounter = 				0;
-static uint8_t backwardCounter = 		0;
+static uint8_t forwardCounter = 0;
+static uint8_t backwardCounter = 0;
 static uint8_t rightTurningCounter = 0;
-static uint8_t leftTurningCounter = 	0;
-static uint8_t lightsBrightness = 			0;
+static uint8_t leftTurningCounter = 0;
+static uint8_t lightsBrightness = 0;
 
 // light ticks handle
-static  uint8_t isRightLightActive = 	0;
-static  uint8_t isLeftLightActive = 		0;
-static  uint8_t isRightOn = 	0;
-static  uint8_t isLeftOn = 		0;
+static  uint8_t isRightLightActive = 0;
+static  uint8_t isLeftLightActive = 0;
+static  uint8_t isRightOn = 0;
+static  uint8_t isLeftOn = 0;
 extern uint32_t SystemCoreClock;
-// FUNCTION PROTOTYPES
 
+/**************************************************************************************\
+* Private prototypes
+\**************************************************************************************/
+void delayMs(int delay);
+void USART2_IRQHandler(void);
+void TIM1_UP_TIM10_IRQHandler(void);
 void GoForward(void);
 void GoBackward(void);
 void TurnRight(void);
@@ -61,14 +72,13 @@ void MotorsForward(uint8_t pwm_value1);
 void MotorsTurningRight(uint8_t pwm_value1);
 void MotorsTurningLeft(uint8_t pwm_value1);
 void Reset(void);
-void RightLightTickHandle(void);
-void LeftLightTickHandle(void);
 void WaitForAction(void);
 void MotorsReset(void);
 
-void delayMs(int delay);
-void USART2_IRQHandler(void);
 
+/**************************************************************************************\
+* Program start
+\**************************************************************************************/
 int main(void)
 {
 	SystemInit();
@@ -116,12 +126,25 @@ int main(void)
 	}
 }
 
+/**************************************************************************************\
+* Private functions
+\**************************************************************************************/
+
+/**
+ * @brief Simple delay function
+ *
+ * @param miliseconds to wait.
+ */
 void delayMs( int n) 
 {  
 	for(int j = 0; j < 10000*n; j++)
 		__NOP();
 }
-	
+
+/**
+ * @brief USART2 interrupt handle function
+ * Read char from usart and set state
+ */
 void USART2_IRQHandler(void)
 {
     // check if the source is read interrupt
@@ -208,6 +231,10 @@ void USART2_IRQHandler(void)
 		USART2->CR1 |= (1 << 5);
 }
 
+/**
+ * @brief TIM10 interrupt handle function
+ * every 1 second run timer and handle turn signal 
+ */
 void TIM1_UP_TIM10_IRQHandler(void)
 {
 	 if (TIM10->DIER & 0x01) {
@@ -230,7 +257,6 @@ void TIM1_UP_TIM10_IRQHandler(void)
 			else if(isLeftLightActive == 0) ResetPin(GPIOC, LEFT_LIGHT_PIN);
 }
 
-
 void GoForward()
 {
 	if (forwardCounter == 0) MotorsForward(MOTOR_SPEED_MIN);
@@ -251,7 +277,6 @@ void TurnRight()
 {
 	if (rightTurningCounter == 0) MotorsTurningRight(MOTOR_SPEED_MEDIUM);
 	else MotorsTurningRight(MOTOR_SPEED_MAX);
-
 }
 
 void TurnLeft()
@@ -280,16 +305,6 @@ void LightsOff()
 	ResetPin(GPIOA, LIGHTS_BACK_PIN);
 	ResetPin(GPIOB, LIGHTS_FRONT_PIN);
 	TIM1->CCR3 = 0;
-}
-
-void RightLightTickHandle(void)
-{
-	
-}
-
-void LeftLightTickHandle(void)
-{
-	
 }
 
 void AdjustBrightness()
@@ -349,6 +364,8 @@ void Reset()
 {
 	TIM1->CCR1 = 0;
 	TIM1->CCR2 = 0;
+	TIM1->CCR3 = 0;
+	
 	ResetPin(GPIOC, DC_IN_1_PIN);
 	ResetPin(GPIOC, DC_IN_2_PIN);
 	ResetPin(GPIOC, DC_IN_3_PIN);
@@ -357,6 +374,7 @@ void Reset()
 	ResetPin(GPIOA, ON_BOARD_LED_PIN);
 	ResetPin(GPIOA, LIGHTS_BACK_PIN);
 	ResetPin(GPIOB, LIGHTS_FRONT_PIN);
+	ResetPin(GPIOC, BUZZER_PIN);
 
 	forwardCounter = 0;
 	backwardCounter = 0;
