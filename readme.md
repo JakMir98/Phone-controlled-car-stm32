@@ -24,8 +24,12 @@ Project is created with:
 * STM32CubeIDE 1.5.0
 
 ## Used hardware:
-- STM32 NUCLEO-F103RB - STM32F103RBT6 ARM Cortex M3 or STM32 NUCLEO-F411RE - STM32F411RE ARM Cortex M4
+- STM32 NUCLEO-F103RB - STM32F103RBT6 ARM Cortex M3
+
 ![NUCLEO-F103RB](https://github.com/JakMir98/Remote-controlled-car-stm32/blob/main/Images/nucleo_f103.jpeg)
+
+ or STM32 NUCLEO-F411RE - STM32F411RE ARM Cortex M4
+ 
 ![NUCLEO-F411RE](https://github.com/JakMir98/Remote-controlled-car-stm32/blob/main/Images/nucleo.jpeg)
 
 - MCP23S08 expander 
