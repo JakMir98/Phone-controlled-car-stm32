@@ -1,4 +1,4 @@
-##Project for Microprocessor technology 2
+## Project for Microprocessor technology 2
 
 # Remote controlled car
 
@@ -19,7 +19,7 @@ Used hardware:
 Andrzej Kasica, Jakub Mirota 
 
 
-##Projekt na Technike mikroprocesorową 2 
+## Projekt na Technike mikroprocesorową 2 
 
 # Zdalnie sterowany pojazd
 
