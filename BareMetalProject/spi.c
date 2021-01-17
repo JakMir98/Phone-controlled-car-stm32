@@ -4,7 +4,6 @@
  * @brief SPI initialization,
  * Enable clock for GPIOC, done in gpio.c
  * Set pins directions as output, speed fast and alternate mode on pins PC13, PC14 and PC15
- * Configure CH1, CH2, CH3 as output, active hight, PWM mode 1, center alligned mode 2, 
  * Enable SPI2 clock
  * Enable SPI, set master configuration, set software slave management and internal slave select
 e 

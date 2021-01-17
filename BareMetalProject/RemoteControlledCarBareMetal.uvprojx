@@ -418,6 +418,11 @@
               <FileType>1</FileType>
               <FilePath>.\periodicTimer.c</FilePath>
             </File>
+            <File>
+              <FileName>carHandler.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\carHandler.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -452,6 +457,11 @@
               <FileName>periodicTimer.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\periodicTimer.h</FilePath>
+            </File>
+            <File>
+              <FileName>carHandler.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\carHandler.h</FilePath>
             </File>
           </Files>
         </Group>

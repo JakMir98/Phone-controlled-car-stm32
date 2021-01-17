@@ -1,6 +1,6 @@
 ## Project for Microprocessor technology 2
 
-## Remote controlled car
+## Phone controlled car
 
 ## Table of contents
 * [Design assumptions](#design-assumptions)
@@ -10,10 +10,9 @@
 
 ## Design assumptions:
 - Processor used: STM32F103 or STM32F411Re
-- Remote controlled car using bluetooth module and application on phone with android system.
+- USB On-The-Go controlled car using UART and phone with android system.
 - Powerbank as power supply
 - Car construction placed on 2WD chassis
-- Bluetooth module controlled with UART
 - MCP23S08 port expander controlled with SPI 
 - L293D half-H driver used to control motors
 - PWM used to change speed of dc motors, and LED brightness
@@ -47,7 +46,6 @@ Project is created with:
 - Buzzer or speaker
 
 ![Buzzer](https://github.com/JakMir98/Remote-controlled-car-stm32/blob/main/Images/buzzer.jpeg)
-![Speaker](https://github.com/JakMir98/Remote-controlled-car-stm32/blob/main/Images/speaker.jpg)
 
 - 2WD chassis
 

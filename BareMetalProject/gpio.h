@@ -36,6 +36,8 @@
 #define SetPin(port, pinNum) (port->BSRR |= (1<<pinNum))
 #define ResetPin(port, pinNum) (port->BSRR |= (1<<(16+pinNum)))
 #define ReadPin(port, pinNum) (port->IDR & (1<<pinNum))
+#define Mask(position) (1UL << position)
+
 
 /**************************************************************************************\
 * Private prototypes
