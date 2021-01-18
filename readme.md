@@ -6,6 +6,7 @@
 * [Design assumptions](#design-assumptions)
 * [Technologies](#technologies)
 * [Used hardware](#used-hardware)
+* [Hardware setup](#hardware-setup)
 * [Authors](#authors)
 
 ## Design assumptions:
@@ -43,13 +44,19 @@ Project is created with:
 
 ![DC_motors](https://github.com/JakMir98/Remote-controlled-car-stm32/blob/main/Images/dc_motor.jpg)
 
-- Buzzer or speaker
+- Buzzer
 
 ![Buzzer](https://github.com/JakMir98/Remote-controlled-car-stm32/blob/main/Images/buzzer.jpeg)
+
+![Buzzer2](https://github.com/JakMir98/Phone-controlled-car-stm32/blob/main/Images/buzzer2.jpg)
 
 - 2WD chassis
 
 ![2WD](https://github.com/JakMir98/Remote-controlled-car-stm32/blob/main/Images/2WD.png)
+
+## Hardware setup
+
+![Car view](https://github.com/JakMir98/Phone-controlled-car-stm32/blob/main/Images/completeCar.jpg)
 
 ## Authors
 Andrzej Kasica, Jakub Mirota 
