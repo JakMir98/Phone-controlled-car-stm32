@@ -9,7 +9,8 @@
 * Enable read and write(not needed in this case) on usart
 * Enable interrupts
  */
- 
+
+
 void USART_INIT(void)
 {
 	// enable USART2 clock, bit 17 on APB1ENR

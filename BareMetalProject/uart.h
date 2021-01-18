@@ -38,6 +38,8 @@
  */
 void USART_INIT(void);
 
+
+
 /**
  * @brief Send char through USART2
  *

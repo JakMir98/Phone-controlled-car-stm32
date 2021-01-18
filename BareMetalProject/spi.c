@@ -23,7 +23,7 @@ void SPI_INIT()
 	// turn on spi2 clock
 	RCC->APB1ENR |=  RCC_APB1ENR_SPI2EN; 
 
-	SPI1->CR1 = SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_SPE | SPI_CR1_MSTR;
+	SPI2->CR1 = SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_SPE | SPI_CR1_MSTR;
 }
 
 /**
@@ -36,14 +36,14 @@ void MCP_Write_Reg(uint8_t addr, uint8_t value)
 {
 	uint8_t tx_buf[] = {0x40, addr, value};
 
-	GPIOA->ODR &= ~GPIO_ODR_ODR_0;
+	GPIOB->ODR &= ~GPIO_ODR_ODR_0;
 
-	while( !(SPI1->SR & SPI_SR_TXE) );
-	SPI1->DR = tx_buf[0];
-	while( !(SPI1->SR & SPI_SR_TXE) );
-	SPI1->DR = tx_buf[1];
-	while( !(SPI1->SR & SPI_SR_TXE) );
-	SPI1->DR = tx_buf[2];
+	while( !(SPI2->SR & SPI_SR_TXE) );
+	SPI2->DR = tx_buf[0];
+	while( !(SPI2->SR & SPI_SR_TXE) );
+	SPI2->DR = tx_buf[1];
+	while( !(SPI2->SR & SPI_SR_TXE) );
+	SPI2->DR = tx_buf[2];
 
-	GPIOA->ODR |= GPIO_ODR_ODR_0;
+	GPIOB->ODR |= GPIO_ODR_ODR_0;
 }	
