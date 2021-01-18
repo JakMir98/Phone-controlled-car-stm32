@@ -1,3 +1,7 @@
+/**************************************************************************************
+ * This file is a part of Phone Controlled Car Bare Metal Project for TMP2 *
+ **************************************************************************************/
+ 
 #include "systemClock.h"
 
 void SYS_CLOCK_INIT(void)

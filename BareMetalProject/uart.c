@@ -1,3 +1,7 @@
+/**************************************************************************************
+ * This file is a part of Phone Controlled Car Bare Metal Project for TMP2 *
+ **************************************************************************************/
+ 
 #include "uart.h"
 
 /**
@@ -89,3 +93,5 @@ uint8_t USART2_GetChar()
 	
 	return USART2->DR;
 }
+
+

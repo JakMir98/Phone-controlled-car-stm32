@@ -1,5 +1,5 @@
 /**************************************************************************************
- * This file is a part of Remote Controlled Car Bare Metal Project for TMP2 *
+ * This file is a part of Phone Controlled Car Bare Metal Project for TMP2 *
  **************************************************************************************/
  
 #ifndef uart_h
@@ -37,8 +37,6 @@
  * @brief USART2 initialization, port GPIOA used , pins 2,3
  */
 void USART_INIT(void);
-
-
 
 /**
  * @brief Send char through USART2

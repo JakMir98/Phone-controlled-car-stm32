@@ -1,5 +1,5 @@
 /**************************************************************************************
- * This file is a part of Remote Controlled Car Bare Metal Project for TMP2 *
+ * This file is a part of Phone Controlled Car Bare Metal Project for TMP2 *
  **************************************************************************************/
  
 #ifndef carHandler_h
@@ -12,12 +12,12 @@
 /**************************************************************************************\
 * Private definitions
 \**************************************************************************************/
-#define SPEED_MAX_LEVEL 										3
-#define TURNING_MAX_LEVEL 									1
-#define MOTOR_SPEED_MIN 										25
-#define MOTOR_SPEED_MEDIUM 						50
-#define MOTOR_SPEED_MORE_MEDIUM 	75
-#define MOTOR_SPEED_MAX 									100
+#define SPEED_MAX_LEVEL 3
+#define TURNING_MAX_LEVEL 1
+#define MOTOR_SPEED_MIN 25
+#define MOTOR_SPEED_MEDIUM 50
+#define MOTOR_SPEED_MORE_MEDIUM 75
+#define MOTOR_SPEED_MAX 100
 
 /**************************************************************************************\
 * Private enums

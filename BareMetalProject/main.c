@@ -1,3 +1,7 @@
+/**************************************************************************************
+ * This file is a part of Phone Controlled Car Bare Metal Project for TMP2 *
+ **************************************************************************************/
+ 
 #include "stm32f411xe.h"
 #include "system_stm32f4xx.h"
 #include "gpio.h"
@@ -32,7 +36,6 @@ volatile State state = RESETTING; // FSM
 \**************************************************************************************/
 void USART2_IRQHandler(void);
 void TIM1_UP_TIM10_IRQHandler(void);
-
 /**************************************************************************************\
 * Program start
 \**************************************************************************************/
@@ -195,13 +198,13 @@ void TIM1_UP_TIM10_IRQHandler(void)
 	if(isLeftOn == 0) isLeftOn = 1;
 	else isLeftOn = 	0;
 
-	if (isRightLightActive == 1 && isRightOn == 1) SetPin(GPIOC, RIGHT_LIGHT_PIN);
-	else if (isRightLightActive == 1 && isRightOn == 0) ResetPin(GPIOC, RIGHT_LIGHT_PIN);
-	else if (isLeftLightActive == 1 && isLeftOn == 1) SetPin(GPIOC, LEFT_LIGHT_PIN);
-	else if (isLeftLightActive == 1 && isLeftOn == 0) ResetPin(GPIOC, LEFT_LIGHT_PIN);
+	if (isRightLightActive == 1 && isRightOn == 1)  MCP_Write_Reg(MCP_OLAT, 0x01); //right turn on	SetPin(GPIOC, RIGHT_LIGHT_PIN);
+	else if (isRightLightActive == 1 && isRightOn == 0) MCP_Write_Reg(MCP_OLAT, 0x00); // off ResetPin(GPIOC, RIGHT_LIGHT_PIN);
+	if (isLeftLightActive == 1 && isLeftOn == 1) MCP_Write_Reg(MCP_OLAT, 0x02); // left turn on SetPin(GPIOC, LEFT_LIGHT_PIN);
+	else if (isLeftLightActive == 1 && isLeftOn == 0) MCP_Write_Reg(MCP_OLAT, 0x00); //ResetPin(GPIOC, LEFT_LIGHT_PIN);
 
-	if (isRightLightActive == 0) ResetPin(GPIOC, RIGHT_LIGHT_PIN);
-	else if(isLeftLightActive == 0) ResetPin(GPIOC, LEFT_LIGHT_PIN);
+	//if (isRightLightActive == 0) ResetPin(GPIOC, RIGHT_LIGHT_PIN);
+	//else if(isLeftLightActive == 0) ResetPin(GPIOC, LEFT_LIGHT_PIN);
 }
 
 

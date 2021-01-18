@@ -1,5 +1,5 @@
 /**************************************************************************************
- * This file is a part of Remote Controlled Car Bare Metal Project for TMP2 *
+ * This file is a part of Phone Controlled Car Bare Metal Project for TMP2 *
  **************************************************************************************/
  
 #ifndef gpio_h
